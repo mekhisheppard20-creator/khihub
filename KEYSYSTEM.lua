@@ -14,7 +14,7 @@ local Config = {
     Secret          = "FRM410", -- This makes the script ONLY run from the key script. Even if they copy the original obfuscated script to bypass the key, they won't be able to!
     
     -- [3] Scripts & Links
-    MainScriptURL   = "", -- The raw URL of your main script
+    MainScriptURL   = "https://raw.githubusercontent.com/mekhisheppard20-creator/khihub/refs/heads/main/KHIHUB", -- The raw URL of your main script
     
     -- [4] Social Media Settings (Set to true to show, false to hide)
     ShowDiscord     = false,
