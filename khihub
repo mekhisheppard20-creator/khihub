@@ -7,7 +7,7 @@
 -------------------------------------------------------------------------------
 local Config = {
     -- [1] PlatoBoost Settings
-    ServiceId       = 0, -- Your PlatoBoost Service ID
+    ServiceId       = 23339, -- Your PlatoBoost Service ID
     PlatoSecret     = "ca43b957-d683-4e11-ad65-50ac0e11c803", -- Your PlatoBoost Secret Key
 
     -- [2] Anti-Bypass / Global Secret Variable
