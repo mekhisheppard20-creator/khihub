@@ -17,14 +17,14 @@ local Config = {
     MainScriptURL   = "https://raw.githubusercontent.com/mekhisheppard20-creator/khihub/refs/heads/main/KHIHUB", -- The raw URL of your main script
     
     -- [4] Social Media Settings (Set to true to show, false to hide)
-    ShowDiscord     = false,
-    DiscordURL      = "https://discord.gg/kT55J724BK",
+    ShowDiscord     = true,
+    DiscordURL      = "https://discord.gg/MWWq8gjTpm",
     
     ShowInstagram   = false,
     InstagramURL    = "https://www.instagram.com/oyb0i/",
     
-    ShowYoutube     = false,
-    YoutubeURL      = "https://www.youtube.com/@OYBloxYT",
+    ShowYoutube     = true,
+    YoutubeURL      = "https://www.youtube.com/@KHIHUB",
 
     -- [5] File System
     KeyFileName     = "Mykey.txt", -- The name of the file where the valid key will be saved for auto-login
