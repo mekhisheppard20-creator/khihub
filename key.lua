@@ -48,11 +48,10 @@ local lEncode, lDecode, lDigest = a3, aw, Z;
 --! CORE FUNCTIONS (REQUESTS & VERIFICATION)
 -------------------------------------------------------------------------------
 
-local useNonce = true -- Hidden from Config to avoid user confusion, but active for security
+local useNonce = true
 
--- Safe request function for universal executor support
 local function safeRequest(options)
-    local req = request or http_request or syn_request or (http and http.request )
+    local req = request or http_request or syn_request or (http and http.request)
     if not req then return nil, "HTTP requests not supported" end
     local success, response = pcall(function() return req(options) end)
     if success and response then return response else return nil, "Connection Error" end
@@ -65,14 +64,13 @@ local fGetHwid = gethwid or function() return game:GetService("RbxAnalyticsServi
 local cachedLink, cachedTime = "", 0
 local host = "https://api.platoboost.com"
 
--- Check server connectivity
-local function checkConnectivity( )
+local function checkConnectivity()
     local response = safeRequest({Url = host .. "/public/connectivity", Method = "GET"})
     if not response or (response.StatusCode ~= 200 and response.StatusCode ~= 429) then
         host = "https://api.platoboost.net"
     end
 end
-checkConnectivity( )
+checkConnectivity()
 
 local function generateNonce()
     local str = ""
@@ -80,7 +78,6 @@ local function generateNonce()
     return str
 end
 
--- Get player's key link
 local function cacheLink()
     if cachedTime + (10*60) < fOsTime() then
         local response, err = safeRequest({
@@ -102,7 +99,6 @@ local function cacheLink()
     return true, cachedLink
 end
 
--- Verify key on input
 local function redeemKey(key)
     local nonce = generateNonce()
     local body = {identifier = lDigest(fGetHwid()), key = key}
@@ -141,16 +137,12 @@ local function StartMainScript()
     local player = game:GetService("Players").LocalPlayer
     local pGui = player:WaitForChild("PlayerGui")
     
-    -- Destroy old GUI if it exists
     if pGui:FindFirstChild(Config.OldGuiName) then 
         pGui[Config.OldGuiName]:Destroy() 
         task.wait(0.1)
     end
     
-    -- Set secret global variable to bypass main script protection
     _G[Config.Secret] = true 
-    
-    -- Execute main script
     loadstring(game:HttpGet(Config.MainScriptURL))()
 end
 
@@ -169,15 +161,14 @@ local function CreateGUI()
     MainFrame.Size = UDim2.new(0, 340, 0, 420)
     MainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
     MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    MainFrame.Active = true;
+    MainFrame.Active = true
     MainFrame.Draggable = true
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 15)
     
     local mainStroke = Instance.new("UIStroke", MainFrame)
-    mainStroke.Thickness = 2;
+    mainStroke.Thickness = 2
     mainStroke.Color = Color3.fromRGB(40, 40, 40)
 
-    -- Close Button
     local CloseBtn = Instance.new("TextButton", MainFrame)
     CloseBtn.Size = UDim2.new(0, 30, 0, 30)
     CloseBtn.Position = UDim2.new(1, -35, 0, 10)
@@ -194,7 +185,7 @@ local function CreateGUI()
     Title.Text = Config.HubName
     Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     Title.TextColor3 = Color3.fromRGB(0, 170, 255)
-    Title.Font = Enum.Font.GothamBold;
+    Title.Font = Enum.Font.GothamBold
     Title.TextSize = 16
     Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 15)
 
@@ -204,11 +195,10 @@ local function CreateGUI()
     PromoText.BackgroundTransparency = 1
     PromoText.Text = Config.HubDescription
     PromoText.TextColor3 = Color3.fromRGB(0, 170, 255)
-    PromoText.Font = Enum.Font.GothamBold;
+    PromoText.Font = Enum.Font.GothamBold
     PromoText.TextSize = 14
     PromoText.TextWrapped = true
 
-    -- Rainbow Stroke Function
     local function AddRainbowStroke(parent)
         local stroke = Instance.new("UIStroke", parent)
         stroke.Thickness = 2
@@ -221,16 +211,14 @@ local function CreateGUI()
         end)
     end
 
-    -- Dynamic Positioning for elements
     local currentYOffset = 105
 
-    -- Discord Button
     if Config.ShowDiscord then
         local DiscordBtn = Instance.new("TextButton", MainFrame)
         DiscordBtn.Size = UDim2.new(0.85, 0, 0, 35)
         DiscordBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset)
         DiscordBtn.Text = "      JOIN DISCORD"
-        DiscordBtn.Font = "GothamBold";
+        DiscordBtn.Font = "GothamBold"
         DiscordBtn.TextSize = 14
         DiscordBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
         DiscordBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -250,7 +238,6 @@ local function CreateGUI()
                 Status.Text = "Discord Link Copied!"
                 Status.TextColor3 = Color3.fromRGB(88, 101, 242)
             end
-            -- Auto-extract invite code from config URL
             local inviteCode = string.match(Config.DiscordURL, "discord%.gg/([%w-]+)")
             if syn and syn.request and inviteCode then
                 syn.request({Url = "http://localhost:1111/discord?invite=" .. inviteCode, Method = "GET"})
@@ -260,13 +247,12 @@ local function CreateGUI()
         currentYOffset = currentYOffset + 45
     end
 
-    -- Instagram Button
     if Config.ShowInstagram then
         local InstaBtn = Instance.new("TextButton", MainFrame)
         InstaBtn.Size = UDim2.new(0.85, 0, 0, 35)
         InstaBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset)
         InstaBtn.Text = "      FOLLOW INSTAGRAM"
-        InstaBtn.Font = "GothamBold";
+        InstaBtn.Font = "GothamBold"
         InstaBtn.TextSize = 14
         InstaBtn.BackgroundColor3 = Color3.fromRGB(225, 48, 108)
         InstaBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -291,13 +277,12 @@ local function CreateGUI()
         currentYOffset = currentYOffset + 45
     end
 
-    -- YouTube Button
     if Config.ShowYoutube then
         local YTBtn = Instance.new("TextButton", MainFrame)
         YTBtn.Size = UDim2.new(0.85, 0, 0, 35)
         YTBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset)
         YTBtn.Text = "      SUBSCRIBE YOUTUBE"
-        YTBtn.Font = "GothamBold";
+        YTBtn.Font = "GothamBold"
         YTBtn.TextSize = 14
         YTBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
         YTBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -328,31 +313,22 @@ local function CreateGUI()
     KeyInput.Position = UDim2.new(0.075, 0, 0, currentYOffset + 15)
     KeyInput.PlaceholderText = "Enter Key..."
     KeyInput.Text = ""
-    KeyInput.Font = Enum.Font.GothamSemibold;
+    KeyInput.Font = Enum.Font.GothamSemibold
     KeyInput.TextSize = 14
-    KeyInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25);
+    KeyInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     KeyInput.TextColor3 = Color3.new(1, 1, 1)
     Instance.new("UICorner", KeyInput)
 
+    -- Verify Button (full width, no GET KEY button)
     local VerifyBtn = Instance.new("TextButton", MainFrame)
-    VerifyBtn.Size = UDim2.new(0.4, 0, 0, 40)
+    VerifyBtn.Size = UDim2.new(0.85, 0, 0, 40)
     VerifyBtn.Position = UDim2.new(0.075, 0, 0, currentYOffset + 65)
     VerifyBtn.Text = "VERIFY"
-    VerifyBtn.Font = "GothamBold";
+    VerifyBtn.Font = "GothamBold"
     VerifyBtn.TextSize = 14
-    VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255);
+    VerifyBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
     VerifyBtn.TextColor3 = Color3.new(1, 1, 1)
     Instance.new("UICorner", VerifyBtn)
-
-    local GetKeyBtn = Instance.new("TextButton", MainFrame)
-    GetKeyBtn.Size = UDim2.new(0.4, 0, 0, 40)
-    GetKeyBtn.Position = UDim2.new(0.525, 0, 0, currentYOffset + 65)
-    GetKeyBtn.Text = "GET KEY"
-    GetKeyBtn.Font = "GothamBold";
-    GetKeyBtn.TextSize = 14
-    GetKeyBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35);
-    GetKeyBtn.TextColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", GetKeyBtn)
 
     local Status = Instance.new("TextLabel", MainFrame)
     Status.Name = "StatusLabel"
@@ -361,13 +337,11 @@ local function CreateGUI()
     Status.BackgroundTransparency = 1
     Status.Text = "Waiting for input..."
     Status.TextColor3 = Color3.fromRGB(150, 150, 150)
-    Status.Font = Enum.Font.Gotham;
+    Status.Font = Enum.Font.Gotham
     Status.TextSize = 12
-    
-    -- Dynamically adjust main frame height based on active elements
+
     MainFrame.Size = UDim2.new(0, 340, 0, currentYOffset + 160)
 
-    -- Logic
     VerifyBtn.MouseButton1Click:Connect(function()
         local key = KeyInput.Text
         if key == "" then Status.Text = "Enter a key!"; return end
@@ -382,18 +356,6 @@ local function CreateGUI()
         else
             Status.Text = msg
             Status.TextColor3 = Color3.fromRGB(255, 50, 50)
-        end
-    end)
-
-    GetKeyBtn.MouseButton1Click:Connect(function()
-        Status.Text = "Getting Link..."
-        local success, link = cacheLink()
-        if success then
-            fSetClipboard(link)
-            Status.Text = "Link Copied!"
-            Status.TextColor3 = Color3.fromRGB(0, 170, 255)
-        else
-            Status.Text = "Error: " .. tostring(link)
         end
     end)
 
@@ -424,7 +386,7 @@ local player = game:GetService("Players").LocalPlayer
 local pGui = player:WaitForChild("PlayerGui")
 
 if pGui:FindFirstChild(Config.MainGuiName) then
-    StartMainScript() -- Run if main script is already active
+    StartMainScript()
     return
 end
 
