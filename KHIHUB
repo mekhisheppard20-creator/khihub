@@ -1,641 +1,808 @@
 --[[
-	KHIHUB - PREMIUM EDITION
-	Fully optimized for smaller screens
-	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+    ██╗  ██╗██╗  ██╗██╗██╗  ██╗██╗   ██╗██████╗
+    ██║ ██╔╝██║  ██║██║██║  ██║██║   ██║██╔══██╗
+    █████╔╝ ███████║██║███████║██║   ██║██████╔╝
+    ██╔═██╗ ██╔══██║██║██╔══██║██║   ██║██╔══██╗
+    ██║  ██╗██║  ██║██║██║  ██║╚██████╔╝██████╔╝
+    ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝
+    PREMIUM EDITION — Tabbed UI (Main / Player / Misc)
 ]]
--- Services
+
+-- ============= SERVICES =============
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
+local CAS = game:GetService("ContextActionService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 
--- Player info
+-- ============= PLAYER INFO =============
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local hrp = character:WaitForChild("HumanoidRootPart")
 
--- Auto-shoot vars
+-- ============= STATE VARS =============
 local shootDuration = 400
 local fadeShotDuration = 340
+local fadeTimingDelay = 200
 local canShoot = true
 local isShooting = false
-
--- Fade shot timing
-local fadeTimingDelay = 200
-local isRunning = false
-
--- Walk speed vars
-local defaultWalkSpeed = 16
-
--- Key states
 local isShiftHeld = false
 local isRTHeld = false
-
--- GUI State
+local isRunning = false
 local guiOpen = true
+local speedEnabled = false
+local currentSpeedValue = 24
+local autoShootOn = false
+local fadeTimingOn = false
+local quickTPEnabled = false
+local quickTPStuds = 2
+local dribbleGlideOn = false
+local dribbleGlideForce = 50
+local antiContestOn = false
+local currentTab = "main"
 
 -- ============= COLOR PALETTE =============
-local COLORS = {
-	BG_DARK = Color3.fromRGB(20, 20, 20),
-	BG_CARD = Color3.fromRGB(30, 30, 30),
-	RED = Color3.fromRGB(255, 50, 50),
-	RED_DARK = Color3.fromRGB(200, 30, 30),
-	WHITE = Color3.fromRGB(255, 255, 255),
-	TEXT_PRIMARY = Color3.fromRGB(255, 255, 255),
-	TEXT_SECONDARY = Color3.fromRGB(200, 200, 200),
-	TEXT_MUTED = Color3.fromRGB(150, 150, 150),
-	ACCENT = Color3.fromRGB(255, 100, 100),
+local C = {
+    BG        = Color3.fromRGB(18, 18, 18),
+    CARD      = Color3.fromRGB(28, 28, 28),
+    CARD2     = Color3.fromRGB(34, 34, 34),
+    RED       = Color3.fromRGB(255, 50, 50),
+    RED_DARK  = Color3.fromRGB(140, 20, 20),
+    GREEN     = Color3.fromRGB(100, 255, 100),
+    WHITE     = Color3.fromRGB(255, 255, 255),
+    MUTED     = Color3.fromRGB(130, 130, 130),
+    TEXT      = Color3.fromRGB(220, 220, 220),
+    INACTIVE  = Color3.fromRGB(50, 50, 50),
 }
 
--- GUI setup
+-- ============= SCREEN GUI =============
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "KhiHubPanel"
 screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- ============= TOGGLE BUTTON (TOP CENTER) - DRAGGABLE =============
-local toggleBtn = Instance.new("Frame")
-toggleBtn.Name = "ToggleButton"
-toggleBtn.Position = UDim2.new(0.5, -25, 0, 10)
-toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.BackgroundColor3 = COLORS.RED
-toggleBtn.BorderSizePixel = 0
-toggleBtn.Active = true
-toggleBtn.Draggable = true
-toggleBtn.Parent = screenGui
+-- ============= TOGGLE BUTTON (draggable) =============
+local toggleFrame = Instance.new("Frame")
+toggleFrame.Name = "ToggleBtn"
+toggleFrame.Position = UDim2.new(0.5, -26, 0, 10)
+toggleFrame.Size = UDim2.new(0, 52, 0, 52)
+toggleFrame.BackgroundColor3 = C.RED
+toggleFrame.BorderSizePixel = 0
+toggleFrame.Active = true
+toggleFrame.Draggable = true
+toggleFrame.Parent = screenGui
+Instance.new("UICorner", toggleFrame).CornerRadius = UDim.new(0, 14)
+local ts = Instance.new("UIStroke", toggleFrame)
+ts.Color = C.WHITE; ts.Thickness = 2
 
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 12)
-toggleCorner.Parent = toggleBtn
-
-local toggleStroke = Instance.new("UIStroke")
-toggleStroke.Color = COLORS.WHITE
-toggleStroke.Thickness = 2
-toggleStroke.Parent = toggleBtn
-
-local toggleText = Instance.new("TextButton")
-toggleText.Size = UDim2.new(1, 0, 1, 0)
-toggleText.BackgroundTransparency = 1
-toggleText.Text = "⚡"
-toggleText.TextColor3 = COLORS.WHITE
-toggleText.Font = Enum.Font.GothamBlack
-toggleText.TextSize = 24
-toggleText.Modal = false
-toggleText.Parent = toggleBtn
+local toggleBtn = Instance.new("TextButton", toggleFrame)
+toggleBtn.Size = UDim2.new(1, 0, 1, 0)
+toggleBtn.BackgroundTransparency = 1
+toggleBtn.Text = "⚡"
+toggleBtn.TextColor3 = C.WHITE
+toggleBtn.Font = Enum.Font.GothamBlack
+toggleBtn.TextSize = 26
 
 -- ============= MAIN FRAME =============
-local frame = Instance.new("Frame")
+local frame = Instance.new("Frame", screenGui)
 frame.Name = "MainFrame"
-frame.Position = UDim2.new(0, 30, 0, 70)
-frame.Size = UDim2.new(0, 300, 0, 520)
-frame.BackgroundColor3 = COLORS.BG_DARK
+frame.Position = UDim2.new(0, 30, 0, 72)
+frame.Size = UDim2.new(0, 310, 0, 540)
+frame.BackgroundColor3 = C.BG
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
-frame.Parent = screenGui
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
+local fStroke = Instance.new("UIStroke", frame)
+fStroke.Color = C.RED; fStroke.Thickness = 2
 
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 15)
-corner.Parent = frame
-
-local stroke = Instance.new("UIStroke")
-stroke.Color = COLORS.RED
-stroke.Thickness = 2
-stroke.Parent = frame
-
--- Accent bar
-local accentBar = Instance.new("Frame")
-accentBar.Size = UDim2.new(1, 0, 0, 6)
-accentBar.BackgroundColor3 = COLORS.RED
+-- RGB accent bar
+local accentBar = Instance.new("Frame", frame)
+accentBar.Size = UDim2.new(1, 0, 0, 5)
+accentBar.BackgroundColor3 = C.RED
 accentBar.BorderSizePixel = 0
-accentBar.Parent = frame
+Instance.new("UICorner", accentBar).CornerRadius = UDim.new(0, 16)
 
-local accentCorner = Instance.new("UICorner")
-accentCorner.CornerRadius = UDim.new(0, 15)
-accentCorner.Parent = accentBar
+task.spawn(function()
+    local colors = {
+        Color3.fromRGB(255,50,50),
+        Color3.fromRGB(255,120,50),
+        Color3.fromRGB(255,50,50),
+        Color3.fromRGB(200,30,30),
+    }
+    local i = 1
+    while true do
+        local next = colors[i % #colors + 1]
+        TweenService:Create(accentBar, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {BackgroundColor3 = next}):Play()
+        i = i + 1
+        task.wait(0.8)
+    end
+end)
 
--- TITLE SECTION
-local titleContainer = Instance.new("Frame")
-titleContainer.Size = UDim2.new(1, 0, 0, 50)
-titleContainer.BackgroundTransparency = 1
-titleContainer.Parent = frame
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -20, 0, 40)
-titleLabel.Position = UDim2.new(0, 10, 0, 5)
+-- ============= TITLE =============
+local titleLabel = Instance.new("TextLabel", frame)
+titleLabel.Size = UDim2.new(1, -20, 0, 44)
+titleLabel.Position = UDim2.new(0, 14, 0, 8)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "⚡ KHIHUB"
-titleLabel.TextColor3 = COLORS.RED
+titleLabel.TextColor3 = C.RED
 titleLabel.Font = Enum.Font.GothamBlack
-titleLabel.TextSize = 28
+titleLabel.TextSize = 26
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = titleContainer
 
--- Divider
-local function createDivider(posY)
-	local divider = Instance.new("Frame")
-	divider.Size = UDim2.new(0.9, 0, 0, 2)
-	divider.Position = UDim2.new(0.05, 0, 0, posY)
-	divider.BackgroundColor3 = COLORS.RED
-	divider.BorderSizePixel = 0
-	divider.Parent = frame
+local premiumBadge = Instance.new("TextLabel", frame)
+premiumBadge.Size = UDim2.new(0, 80, 0, 20)
+premiumBadge.Position = UDim2.new(1, -94, 0, 18)
+premiumBadge.BackgroundTransparency = 1
+premiumBadge.Text = "PREMIUM"
+premiumBadge.TextColor3 = C.RED
+premiumBadge.Font = Enum.Font.GothamBold
+premiumBadge.TextSize = 10
 
-	local divCorner = Instance.new("UICorner")
-	divCorner.CornerRadius = UDim.new(0, 1)
-	divCorner.Parent = divider
+-- ============= UTILITY: DIVIDER =============
+local function makeDivider(parent, posY)
+    local d = Instance.new("Frame", parent)
+    d.Size = UDim2.new(0.9, 0, 0, 1)
+    d.Position = UDim2.new(0.05, 0, 0, posY)
+    d.BackgroundColor3 = C.RED
+    d.BorderSizePixel = 0
+    d.BackgroundTransparency = 0.5
+    Instance.new("UICorner", d).CornerRadius = UDim.new(0, 1)
+    return d
 end
 
-createDivider(52)
+makeDivider(frame, 52)
 
--- ============= INPUT TEXTBOX CREATION =============
-local function createInputBox(name, icon, posY, initialVal, unit, callback)
-	local container = Instance.new("Frame")
-	container.Name = name .. "Container"
-	container.Size = UDim2.new(1, -30, 0, 65)
-	container.Position = UDim2.new(0, 15, 0, posY)
-	container.BackgroundColor3 = COLORS.BG_CARD
-	container.BorderSizePixel = 0
-	container.Parent = frame
+-- ============= TAB SYSTEM =============
+local TAB_Y = 58
+local tabDefs = {"MAIN", "PLAYER", "MISC"}
+local tabButtons = {}
+local tabPages = {}
 
-	local containerCorner = Instance.new("UICorner")
-	containerCorner.CornerRadius = UDim.new(0, 10)
-	containerCorner.Parent = container
+local tabBar = Instance.new("Frame", frame)
+tabBar.Size = UDim2.new(1, -24, 0, 34)
+tabBar.Position = UDim2.new(0, 12, 0, TAB_Y)
+tabBar.BackgroundTransparency = 1
 
-	-- Header
-	local headerFrame = Instance.new("Frame")
-	headerFrame.Size = UDim2.new(1, 0, 0, 25)
-	headerFrame.BackgroundTransparency = 1
-	headerFrame.Parent = container
+for i, name in ipairs(tabDefs) do
+    local btn = Instance.new("TextButton", tabBar)
+    btn.Size = UDim2.new(1/#tabDefs, -4, 1, 0)
+    btn.Position = UDim2.new((i-1)/#tabDefs, (i==1 and 0 or 2), 0, 0)
+    btn.BackgroundColor3 = C.CARD2
+    btn.TextColor3 = C.MUTED
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 11
+    btn.Text = name
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+    tabButtons[name] = btn
 
-	local iconLabel = Instance.new("TextLabel")
-	iconLabel.Size = UDim2.new(0, 25, 0, 25)
-	iconLabel.Position = UDim2.new(0, 10, 0, 0)
-	iconLabel.BackgroundTransparency = 1
-	iconLabel.Text = icon
-	iconLabel.TextColor3 = COLORS.RED
-	iconLabel.Font = Enum.Font.GothamBold
-	iconLabel.TextSize = 16
-	iconLabel.Parent = headerFrame
+    local page = Instance.new("ScrollingFrame", frame)
+    page.Name = "Page_" .. name
+    page.Size = UDim2.new(1, -20, 0, 398)
+    page.Position = UDim2.new(0, 10, 0, 100)
+    page.BackgroundTransparency = 1
+    page.BorderSizePixel = 0
+    page.ScrollBarThickness = 3
+    page.ScrollBarImageColor3 = C.RED
+    page.CanvasSize = UDim2.new(0, 0, 0, 0)
+    page.Visible = (name == "MAIN")
+    tabPages[name] = page
 
-	local labelText = Instance.new("TextLabel")
-	labelText.Size = UDim2.new(0.55, -45, 0, 25)
-	labelText.Position = UDim2.new(0, 40, 0, 0)
-	labelText.BackgroundTransparency = 1
-	labelText.Text = name
-	labelText.TextColor3 = COLORS.TEXT_PRIMARY
-	labelText.Font = Enum.Font.GothamBold
-	labelText.TextSize = 12
-	labelText.TextXAlignment = Enum.TextXAlignment.Left
-	labelText.Parent = headerFrame
-
-	local valueLabel = Instance.new("TextLabel")
-	valueLabel.Size = UDim2.new(0.35, 0, 0, 25)
-	valueLabel.Position = UDim2.new(0.65, 0, 0, 0)
-	valueLabel.BackgroundTransparency = 1
-	valueLabel.Text = initialVal .. unit
-	valueLabel.TextColor3 = COLORS.RED
-	valueLabel.Font = Enum.Font.GothamBold
-	valueLabel.TextSize = 14
-	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
-	valueLabel.Parent = headerFrame
-
-	-- Input Textbox
-	local inputBox = Instance.new("TextBox")
-	inputBox.Name = "Input"
-	inputBox.Size = UDim2.new(1, -20, 0, 28)
-	inputBox.Position = UDim2.new(0, 10, 0, 30)
-	inputBox.BackgroundColor3 = COLORS.BG_DARK
-	inputBox.TextColor3 = COLORS.RED
-	inputBox.PlaceholderColor3 = COLORS.TEXT_MUTED
-	inputBox.PlaceholderText = initialVal .. unit
-	inputBox.Font = Enum.Font.GothamBold
-	inputBox.TextSize = 14
-	inputBox.BorderSizePixel = 1
-	inputBox.BorderColor3 = COLORS.RED
-	inputBox.Text = initialVal
-	inputBox.Parent = container
-
-	local inputCorner = Instance.new("UICorner")
-	inputCorner.CornerRadius = UDim.new(0, 6)
-	inputCorner.Parent = inputBox
-
-	local currentValue = initialVal
-
-	inputBox.FocusLost:Connect(function(enterPressed)
-		local value = tonumber(inputBox.Text)
-		if value then
-			currentValue = math.clamp(value, 1, 10000)
-			inputBox.Text = tostring(currentValue)
-			valueLabel.Text = currentValue .. unit
-			if callback then callback(currentValue) end
-		else
-			inputBox.Text = tostring(currentValue)
-		end
-	end)
-
-	return function()
-		return currentValue
-	end
+    local layout = Instance.new("UIListLayout", page)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 6)
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        page.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 12)
+    end)
 end
 
--- ============= CREATE INPUT BOXES =============
-local getShootDuration = createInputBox("SHOT", "🎯", 65, shootDuration, "ms", function(val)
-	shootDuration = val
-end)
-
-local getFadeShotDuration = createInputBox("FADE", "🌫️", 145, fadeShotDuration, "ms", function(val)
-	fadeShotDuration = val
-end)
-
-local getFadeTimingDelay = createInputBox("DELAY", "⏱️", 225, fadeTimingDelay, "ms", function(val)
-	fadeTimingDelay = val
-end)
-
-createDivider(305)
-
--- ============= SPEED SECTION =============
-local speedHeaderContainer = Instance.new("Frame")
-speedHeaderContainer.Size = UDim2.new(1, -30, 0, 30)
-speedHeaderContainer.Position = UDim2.new(0, 15, 0, 315)
-speedHeaderContainer.BackgroundTransparency = 1
-speedHeaderContainer.Parent = frame
-
-local speedHeaderIcon = Instance.new("TextLabel")
-speedHeaderIcon.Size = UDim2.new(0, 25, 0, 30)
-speedHeaderIcon.BackgroundTransparency = 1
-speedHeaderIcon.Text = "💨"
-speedHeaderIcon.TextColor3 = COLORS.RED
-speedHeaderIcon.Font = Enum.Font.GothamBold
-speedHeaderIcon.TextSize = 16
-speedHeaderIcon.Parent = speedHeaderContainer
-
-local speedHeaderLabel = Instance.new("TextLabel")
-speedHeaderLabel.Size = UDim2.new(0.4, -35, 0, 30)
-speedHeaderLabel.Position = UDim2.new(0, 30, 0, 0)
-speedHeaderLabel.BackgroundTransparency = 1
-speedHeaderLabel.Text = "SPEED"
-speedHeaderLabel.TextColor3 = COLORS.TEXT_PRIMARY
-speedHeaderLabel.Font = Enum.Font.GothamBold
-speedHeaderLabel.TextSize = 12
-speedHeaderLabel.TextXAlignment = Enum.TextXAlignment.Left
-speedHeaderLabel.Parent = speedHeaderContainer
-
--- Textbox for speed input
-local speedTextBox = Instance.new("TextBox")
-speedTextBox.Name = "SpeedInput"
-speedTextBox.Size = UDim2.new(0.35, 0, 0, 28)
-speedTextBox.Position = UDim2.new(0.65, 0, 0.5, -14)
-speedTextBox.BackgroundColor3 = COLORS.BG_DARK
-speedTextBox.TextColor3 = COLORS.RED
-speedTextBox.PlaceholderColor3 = COLORS.TEXT_MUTED
-speedTextBox.PlaceholderText = "24"
-speedTextBox.Font = Enum.Font.GothamBold
-speedTextBox.TextSize = 12
-speedTextBox.BorderSizePixel = 1
-speedTextBox.BorderColor3 = COLORS.RED
-speedTextBox.Text = "24"
-speedTextBox.Parent = speedHeaderContainer
-
-local textBoxCorner = Instance.new("UICorner")
-textBoxCorner.CornerRadius = UDim.new(0, 6)
-textBoxCorner.Parent = speedTextBox
-
--- Speed toggle label and button container
-local speedToggleContainer = Instance.new("Frame")
-speedToggleContainer.Size = UDim2.new(1, -30, 0, 35)
-speedToggleContainer.Position = UDim2.new(0, 15, 0, 350)
-speedToggleContainer.BackgroundColor3 = COLORS.BG_CARD
-speedToggleContainer.BorderSizePixel = 0
-speedToggleContainer.Parent = frame
-
-local speedToggleCorner = Instance.new("UICorner")
-speedToggleCorner.CornerRadius = UDim.new(0, 10)
-speedToggleCorner.Parent = speedToggleContainer
-
-local speedToggleLabel = Instance.new("TextLabel")
-speedToggleLabel.Size = UDim2.new(0.6, 0, 1, 0)
-speedToggleLabel.Position = UDim2.new(0, 12, 0, 0)
-speedToggleLabel.BackgroundTransparency = 1
-speedToggleLabel.Text = "Enable Speed"
-speedToggleLabel.TextColor3 = COLORS.TEXT_PRIMARY
-speedToggleLabel.Font = Enum.Font.GothamBold
-speedToggleLabel.TextSize = 11
-speedToggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-speedToggleLabel.Parent = speedToggleContainer
-
-local speedToggleBtn = Instance.new("TextButton")
-speedToggleBtn.Name = "SpeedToggle"
-speedToggleBtn.Size = UDim2.new(0, 50, 0, 26)
-speedToggleBtn.Position = UDim2.new(0.65, 0, 0.5, -13)
-speedToggleBtn.BackgroundColor3 = COLORS.BG_DARK
-speedToggleBtn.TextSize = 0
-speedToggleBtn.BorderSizePixel = 1
-speedToggleBtn.BorderColor3 = COLORS.RED
-speedToggleBtn.Parent = speedToggleContainer
-
-local speedBtnCorner = Instance.new("UICorner")
-speedBtnCorner.CornerRadius = UDim.new(0, 10)
-speedBtnCorner.Parent = speedToggleBtn
-
-local speedToggleCircle = Instance.new("Frame")
-speedToggleCircle.Name = "Circle"
-speedToggleCircle.Size = UDim2.new(0, 22, 0, 22)
-speedToggleCircle.Position = UDim2.new(0, 2, 0.5, -11)
-speedToggleCircle.BackgroundColor3 = COLORS.RED
-speedToggleCircle.BorderSizePixel = 0
-speedToggleCircle.Parent = speedToggleBtn
-
-local speedCircleCorner = Instance.new("UICorner")
-speedCircleCorner.CornerRadius = UDim.new(0, 11)
-speedCircleCorner.Parent = speedToggleCircle
-
-local speedEnabled = false
-local currentSpeedValue = 24
-
-speedTextBox.FocusLost:Connect(function(enterPressed)
-	local value = tonumber(speedTextBox.Text)
-	if value then
-		currentSpeedValue = math.clamp(value, 1, 100)
-		speedTextBox.Text = tostring(currentSpeedValue)
-	else
-		speedTextBox.Text = tostring(currentSpeedValue)
-	end
-end)
-
-speedToggleBtn.MouseButton1Click:Connect(function()
-	speedEnabled = not speedEnabled
-
-	local bgTween = TweenService:Create(
-		speedToggleBtn,
-		TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ BackgroundColor3 = speedEnabled and Color3.fromRGB(100, 0, 0) or COLORS.BG_DARK }
-	)
-
-	local positionTween = TweenService:Create(
-		speedToggleCircle,
-		TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Position = speedEnabled and UDim2.new(0, 26, 0.5, -11) or UDim2.new(0, 2, 0.5, -11) }
-	)
-
-	local circleTween = TweenService:Create(
-		speedToggleCircle,
-		TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ BackgroundColor3 = speedEnabled and Color3.fromRGB(100, 255, 100) or COLORS.RED }
-	)
-
-	bgTween:Play()
-	positionTween:Play()
-	circleTween:Play()
-end)
-
-createDivider(390)
-
--- ============= TOGGLE FUNCTION =============
-local function createToggle(name, icon, posY)
-	local toggleContainer = Instance.new("Frame")
-	toggleContainer.Name = name .. "Container"
-	toggleContainer.Size = UDim2.new(1, -30, 0, 40)
-	toggleContainer.Position = UDim2.new(0, 15, 0, posY)
-	toggleContainer.BackgroundColor3 = COLORS.BG_CARD
-	toggleContainer.BorderSizePixel = 0
-	toggleContainer.Parent = frame
-
-	local containerCorner = Instance.new("UICorner")
-	containerCorner.CornerRadius = UDim.new(0, 10)
-	containerCorner.Parent = toggleContainer
-
-	local labelText = Instance.new("TextLabel")
-	labelText.Size = UDim2.new(0.65, 0, 1, 0)
-	labelText.Position = UDim2.new(0, 12, 0, 0)
-	labelText.BackgroundTransparency = 1
-	labelText.Text = icon .. " " .. name
-	labelText.TextColor3 = COLORS.TEXT_PRIMARY
-	labelText.Font = Enum.Font.GothamBold
-	labelText.TextSize = 12
-	labelText.TextXAlignment = Enum.TextXAlignment.Left
-	labelText.Parent = toggleContainer
-
-	local toggleButton = Instance.new("TextButton")
-	toggleButton.Name = "Toggle"
-	toggleButton.Size = UDim2.new(0, 50, 0, 26)
-	toggleButton.Position = UDim2.new(0.65, 0, 0.5, -13)
-	toggleButton.BackgroundColor3 = COLORS.BG_DARK
-	toggleButton.TextSize = 0
-	toggleButton.BorderSizePixel = 1
-	toggleButton.BorderColor3 = COLORS.RED
-	toggleButton.Parent = toggleContainer
-
-	local btnCorner = Instance.new("UICorner")
-	btnCorner.CornerRadius = UDim.new(0, 10)
-	btnCorner.Parent = toggleButton
-
-	local toggleCircle = Instance.new("Frame")
-	toggleCircle.Name = "Circle"
-	toggleCircle.Size = UDim2.new(0, 22, 0, 22)
-	toggleCircle.Position = UDim2.new(0, 2, 0.5, -11)
-	toggleCircle.BackgroundColor3 = COLORS.RED
-	toggleCircle.BorderSizePixel = 0
-	toggleCircle.Parent = toggleButton
-
-	local circleCorner = Instance.new("UICorner")
-	circleCorner.CornerRadius = UDim.new(0, 11)
-	circleCorner.Parent = toggleCircle
-
-	local state = false
-
-	toggleButton.MouseButton1Click:Connect(function()
-		state = not state
-
-		local bgTween = TweenService:Create(
-			toggleButton,
-			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ BackgroundColor3 = state and Color3.fromRGB(100, 0, 0) or COLORS.BG_DARK }
-		)
-
-		local positionTween = TweenService:Create(
-			toggleCircle,
-			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ Position = state and UDim2.new(0, 26, 0.5, -11) or UDim2.new(0, 2, 0.5, -11) }
-		)
-
-		local circleTween = TweenService:Create(
-			toggleCircle,
-			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ BackgroundColor3 = state and Color3.fromRGB(100, 255, 100) or COLORS.RED }
-		)
-
-		bgTween:Play()
-		positionTween:Play()
-		circleTween:Play()
-	end)
-
-	return function()
-		return state
-	end
+local function switchTab(name)
+    currentTab = name
+    for n, btn in pairs(tabButtons) do
+        if n == name then
+            btn.BackgroundColor3 = C.CARD
+            btn.TextColor3 = C.RED
+            local stroke = btn:FindFirstChildOfClass("UIStroke") or Instance.new("UIStroke", btn)
+            stroke.Color = C.RED; stroke.Thickness = 1
+        else
+            btn.BackgroundColor3 = C.CARD2
+            btn.TextColor3 = C.MUTED
+            local stroke = btn:FindFirstChildOfClass("UIStroke")
+            if stroke then stroke:Destroy() end
+        end
+        tabPages[n].Visible = (n == name)
+    end
 end
 
-local getAutoShootOn = createToggle("AUTO-SHOOT", "🎯", 400)
-local getFadeTimingOn = createToggle("FADE TIMING", "🌫️", 445)
+for _, name in ipairs(tabDefs) do
+    tabButtons[name].MouseButton1Click:Connect(function() switchTab(name) end)
+end
 
--- ============= TOGGLE GUI OPEN/CLOSE =============
-toggleText.MouseButton1Click:Connect(function()
-	guiOpen = not guiOpen
-	
-	local targetPos = guiOpen and UDim2.new(0, 30, 0, 70) or UDim2.new(0, -330, 0, 70)
-	local tween = TweenService:Create(
-		frame,
-		TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{ Position = targetPos }
-	)
-	tween:Play()
+switchTab("MAIN")
+
+makeDivider(frame, 96)
+
+-- ============= UTILITY: INPUT BOX =============
+local function createInput(page, icon, labelTxt, initVal, unit, order, callback)
+    local card = Instance.new("Frame", page)
+    card.Size = UDim2.new(1, 0, 0, 68)
+    card.BackgroundColor3 = C.CARD
+    card.BorderSizePixel = 0
+    card.LayoutOrder = order
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
+    local cs = Instance.new("UIStroke", card)
+    cs.Color = C.RED; cs.Thickness = 1; cs.Transparency = 0.75
+
+    local iconLbl = Instance.new("TextLabel", card)
+    iconLbl.Size = UDim2.new(0, 24, 0, 26)
+    iconLbl.Position = UDim2.new(0, 10, 0, 4)
+    iconLbl.BackgroundTransparency = 1
+    iconLbl.Text = icon
+    iconLbl.TextColor3 = C.RED
+    iconLbl.Font = Enum.Font.GothamBold
+    iconLbl.TextSize = 15
+
+    local nameLbl = Instance.new("TextLabel", card)
+    nameLbl.Size = UDim2.new(0.55, -40, 0, 26)
+    nameLbl.Position = UDim2.new(0, 38, 0, 4)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = labelTxt
+    nameLbl.TextColor3 = C.TEXT
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.TextSize = 12
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local valLbl = Instance.new("TextLabel", card)
+    valLbl.Size = UDim2.new(0.35, 0, 0, 26)
+    valLbl.Position = UDim2.new(0.65, 0, 0, 4)
+    valLbl.BackgroundTransparency = 1
+    valLbl.Text = initVal .. unit
+    valLbl.TextColor3 = C.RED
+    valLbl.Font = Enum.Font.GothamBold
+    valLbl.TextSize = 13
+    valLbl.TextXAlignment = Enum.TextXAlignment.Right
+
+    local inputBox = Instance.new("TextBox", card)
+    inputBox.Size = UDim2.new(1, -20, 0, 28)
+    inputBox.Position = UDim2.new(0, 10, 0, 32)
+    inputBox.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    inputBox.TextColor3 = C.RED
+    inputBox.PlaceholderColor3 = C.MUTED
+    inputBox.PlaceholderText = tostring(initVal)
+    inputBox.Font = Enum.Font.GothamBold
+    inputBox.TextSize = 13
+    inputBox.BorderSizePixel = 1
+    inputBox.BorderColor3 = C.RED
+    inputBox.Text = tostring(initVal)
+    Instance.new("UICorner", inputBox).CornerRadius = UDim.new(0, 6)
+
+    local current = initVal
+    inputBox.FocusLost:Connect(function()
+        local v = tonumber(inputBox.Text)
+        if v then
+            current = math.clamp(v, 1, 10000)
+            inputBox.Text = tostring(current)
+            valLbl.Text = current .. unit
+            if callback then callback(current) end
+        else
+            inputBox.Text = tostring(current)
+        end
+    end)
+    return function() return current end
+end
+
+-- ============= UTILITY: TOGGLE =============
+local function createToggle(page, icon, labelTxt, order, initState, onToggle)
+    local card = Instance.new("Frame", page)
+    card.Size = UDim2.new(1, 0, 0, 42)
+    card.BackgroundColor3 = C.CARD
+    card.BorderSizePixel = 0
+    card.LayoutOrder = order
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
+    local cs = Instance.new("UIStroke", card)
+    cs.Color = C.RED; cs.Thickness = 1; cs.Transparency = 0.78
+
+    local lbl = Instance.new("TextLabel", card)
+    lbl.Size = UDim2.new(0.65, 0, 1, 0)
+    lbl.Position = UDim2.new(0, 12, 0, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = icon .. "  " .. labelTxt
+    lbl.TextColor3 = C.TEXT
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 12
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local pill = Instance.new("TextButton", card)
+    pill.Size = UDim2.new(0, 50, 0, 26)
+    pill.Position = UDim2.new(1, -60, 0.5, -13)
+    pill.BackgroundColor3 = C.INACTIVE
+    pill.TextSize = 0
+    pill.BorderSizePixel = 1
+    pill.BorderColor3 = C.RED
+    Instance.new("UICorner", pill).CornerRadius = UDim.new(0, 13)
+
+    local circle = Instance.new("Frame", pill)
+    circle.Size = UDim2.new(0, 22, 0, 22)
+    circle.Position = UDim2.new(0, 2, 0.5, -11)
+    circle.BackgroundColor3 = C.RED
+    circle.BorderSizePixel = 0
+    Instance.new("UICorner", circle).CornerRadius = UDim.new(0, 11)
+
+    local state = initState or false
+
+    local function applyState(s)
+        TweenService:Create(pill, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
+            BackgroundColor3 = s and C.RED_DARK or C.INACTIVE
+        }):Play()
+        TweenService:Create(circle, TweenInfo.new(0.18, Enum.EasingStyle.Quad), {
+            Position = s and UDim2.new(0, 26, 0.5, -11) or UDim2.new(0, 2, 0.5, -11),
+            BackgroundColor3 = s and C.GREEN or C.RED,
+        }):Play()
+    end
+
+    applyState(state)
+
+    pill.MouseButton1Click:Connect(function()
+        state = not state
+        applyState(state)
+        if onToggle then onToggle(state) end
+    end)
+
+    return function() return state end
+end
+
+-- ============= UTILITY: SECTION HEADING =============
+local function heading(page, text, order)
+    local lbl = Instance.new("TextLabel", page)
+    lbl.Size = UDim2.new(1, 0, 0, 18)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = string.upper(text)
+    lbl.TextColor3 = C.MUTED
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 10
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.LayoutOrder = order
+    return lbl
+end
+
+-- ============= UTILITY: SLIDER =============
+local function createSlider(page, icon, labelTxt, minVal, maxVal, initVal, unit, order, callback)
+    local card = Instance.new("Frame", page)
+    card.Size = UDim2.new(1, 0, 0, 72)
+    card.BackgroundColor3 = C.CARD
+    card.BorderSizePixel = 0
+    card.LayoutOrder = order
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
+    local cs = Instance.new("UIStroke", card)
+    cs.Color = C.RED; cs.Thickness = 1; cs.Transparency = 0.75
+
+    local iconLbl = Instance.new("TextLabel", card)
+    iconLbl.Size = UDim2.new(0, 24, 0, 26)
+    iconLbl.Position = UDim2.new(0, 10, 0, 4)
+    iconLbl.BackgroundTransparency = 1
+    iconLbl.Text = icon
+    iconLbl.TextColor3 = C.RED
+    iconLbl.Font = Enum.Font.GothamBold
+    iconLbl.TextSize = 15
+
+    local nameLbl = Instance.new("TextLabel", card)
+    nameLbl.Size = UDim2.new(0.55, -40, 0, 26)
+    nameLbl.Position = UDim2.new(0, 38, 0, 4)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = labelTxt
+    nameLbl.TextColor3 = C.TEXT
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.TextSize = 12
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    local valLbl = Instance.new("TextLabel", card)
+    valLbl.Size = UDim2.new(0.35, 0, 0, 26)
+    valLbl.Position = UDim2.new(0.65, 0, 0, 4)
+    valLbl.BackgroundTransparency = 1
+    valLbl.Text = initVal .. unit
+    valLbl.TextColor3 = C.RED
+    valLbl.Font = Enum.Font.GothamBold
+    valLbl.TextSize = 13
+    valLbl.TextXAlignment = Enum.TextXAlignment.Right
+
+    -- Track background
+    local trackBG = Instance.new("Frame", card)
+    trackBG.Size = UDim2.new(1, -20, 0, 8)
+    trackBG.Position = UDim2.new(0, 10, 0, 46)
+    trackBG.BackgroundColor3 = C.INACTIVE
+    trackBG.BorderSizePixel = 0
+    Instance.new("UICorner", trackBG).CornerRadius = UDim.new(0, 4)
+
+    -- Track fill
+    local trackFill = Instance.new("Frame", trackBG)
+    local initFrac = (initVal - minVal) / (maxVal - minVal)
+    trackFill.Size = UDim2.new(initFrac, 0, 1, 0)
+    trackFill.BackgroundColor3 = C.RED
+    trackFill.BorderSizePixel = 0
+    Instance.new("UICorner", trackFill).CornerRadius = UDim.new(0, 4)
+
+    -- Knob
+    local knob = Instance.new("Frame", trackBG)
+    knob.Size = UDim2.new(0, 16, 0, 16)
+    knob.Position = UDim2.new(initFrac, -8, 0.5, -8)
+    knob.BackgroundColor3 = C.WHITE
+    knob.BorderSizePixel = 0
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(0, 8)
+    local ks = Instance.new("UIStroke", knob)
+    ks.Color = C.RED; ks.Thickness = 2
+
+    local currentVal = initVal
+    local dragging = false
+
+    local function updateSlider(inputPos)
+        local trackAbsPos = trackBG.AbsolutePosition.X
+        local trackAbsSize = trackBG.AbsoluteSize.X
+        local frac = math.clamp((inputPos - trackAbsPos) / trackAbsSize, 0, 1)
+        currentVal = math.round(minVal + frac * (maxVal - minVal))
+        trackFill.Size = UDim2.new(frac, 0, 1, 0)
+        knob.Position = UDim2.new(frac, -8, 0.5, -8)
+        valLbl.Text = currentVal .. unit
+        if callback then callback(currentVal) end
+    end
+
+    trackBG.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateSlider(input.Position.X)
+        end
+    end)
+
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateSlider(input.Position.X)
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    return function() return currentVal end
+end
+
+-- ============= BUILD MAIN TAB =============
+local mainPage = tabPages["MAIN"]
+heading(mainPage, "  Shot Settings", 1)
+local getShootDuration = createInput(mainPage, "🎯", "SHOT Duration", shootDuration, "ms", 2, function(v) shootDuration = v end)
+local getFadeShotDuration = createInput(mainPage, "🌫️", "FADE Duration", fadeShotDuration, "ms", 3, function(v) fadeShotDuration = v end)
+local getFadeTimingDelay = createInput(mainPage, "⏱️", "FADE Delay", fadeTimingDelay, "ms", 4, function(v) fadeTimingDelay = v end)
+heading(mainPage, "  Toggles", 5)
+local getAutoShootOn = createToggle(mainPage, "🎯", "AUTO-SHOOT", 6, false, function(v) autoShootOn = v end)
+local getFadeTimingOn = createToggle(mainPage, "🌫️", "FADE TIMING", 7, false, function(v) fadeTimingOn = v end)
+heading(mainPage, "  Anti Contest", 8)
+local getAntiContestOn = createToggle(mainPage, "🛡️", "ANTI CONTEST", 9, false, function(v) antiContestOn = v end)
+heading(mainPage, "  Dribble Glide", 10)
+local getDribbleGlideForce = createSlider(mainPage, "🏀", "Glide Force", 10, 200, 50, "", 11, function(v) dribbleGlideForce = v end)
+local getDribbleGlideOn = createToggle(mainPage, "🏀", "DRIBBLE GLIDE", 12, false, function(v) dribbleGlideOn = v end)
+
+-- ============= BUILD PLAYER TAB =============
+local playerPage = tabPages["PLAYER"]
+heading(playerPage, "  Speed", 1)
+local getSpeedValue = createInput(playerPage, "💨", "Walk Speed", 24, "", 2, function(v) currentSpeedValue = v end)
+heading(playerPage, "  Quick TP", 3)
+local getTPStuds = createInput(playerPage, "📏", "TP Distance", 2, " studs", 4, function(v) quickTPStuds = v end)
+local getQuickTPEnabled = createToggle(playerPage, "⚡", "QUICK TP  (F / RB)", 5, false, function(v)
+    quickTPEnabled = v
+    if v then
+        CAS:BindAction("KhiQuickTP", function(name, state, input)
+            if state == Enum.UserInputState.Begin and quickTPEnabled then
+                local char = player.Character
+                if not char then return end
+                local root = char:FindFirstChild("HumanoidRootPart")
+                if not root then return end
+                root.CFrame = root.CFrame + root.CFrame.LookVector * quickTPStuds
+            end
+        end, false, Enum.KeyCode.ButtonR1)
+    else
+        pcall(function() CAS:UnbindAction("KhiQuickTP") end)
+    end
+end)
+heading(playerPage, "  Controls", 6)
+local getSpeedEnabled = createToggle(playerPage, "💨", "ENABLE SPEED", 7, false, function(v) speedEnabled = v end)
+local getInfStamina = createToggle(playerPage, "⚡", "INFINITE STAMINA", 8, true, function(v) end)
+
+-- ============= BUILD MISC TAB =============
+local miscPage = tabPages["MISC"]
+heading(miscPage, "  GUI Options", 1)
+local getShowOnStart = createToggle(miscPage, "👁️", "SHOW PANEL ON START", 2, true)
+heading(miscPage, "  FOV Changer", 3)
+
+local currentFOV = 70
+local getFOVValue = createSlider(miscPage, "🔭", "Field of View", 40, 120, 70, "°", 4, function(v)
+    currentFOV = v
+    local cam = workspace.CurrentCamera
+    if cam then cam.FieldOfView = v end
 end)
 
--- ============= CORE FUNCTIONALITY =============
+heading(miscPage, "  Utilities", 5)
+
+local function miscButton(page, icon, labelTxt, order, onClick)
+    local btn = Instance.new("TextButton", page)
+    btn.Size = UDim2.new(1, 0, 0, 38)
+    btn.BackgroundColor3 = C.CARD
+    btn.TextColor3 = C.TEXT
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 12
+    btn.Text = icon .. "  " .. labelTxt
+    btn.BorderSizePixel = 0
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    local bs = Instance.new("UIStroke", btn)
+    bs.Color = C.RED; bs.Thickness = 1; bs.Transparency = 0.75
+    btn.MouseButton1Click:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = C.RED_DARK}):Play()
+        task.delay(0.15, function()
+            TweenService:Create(btn, TweenInfo.new(0.1), {BackgroundColor3 = C.CARD}):Play()
+        end)
+        if onClick then onClick() end
+    end)
+    return btn
+end
+
+miscButton(miscPage, "🔄", "RESET CHARACTER", 6, function()
+    if humanoid then humanoid.Health = 0 end
+end)
+miscButton(miscPage, "🔕", "DISABLE ALL FEATURES", 7, function()
+    speedEnabled = false
+    autoShootOn = false
+    fadeTimingOn = false
+    quickTPEnabled = false
+    pcall(function() CAS:UnbindAction("KhiQuickTP") end)
+end)
+
+-- ============= STATUS FOOTER =============
+local footerBar = Instance.new("Frame", frame)
+footerBar.Size = UDim2.new(1, -20, 0, 28)
+footerBar.Position = UDim2.new(0, 10, 1, -34)
+footerBar.BackgroundTransparency = 1
+
+local statusDot = Instance.new("Frame", footerBar)
+statusDot.Size = UDim2.new(0, 8, 0, 8)
+statusDot.Position = UDim2.new(0, 0, 0.5, -4)
+statusDot.BackgroundColor3 = C.GREEN
+statusDot.BorderSizePixel = 0
+Instance.new("UICorner", statusDot).CornerRadius = UDim.new(0, 4)
+
+local statusLbl = Instance.new("TextLabel", footerBar)
+statusLbl.Size = UDim2.new(0.5, 0, 1, 0)
+statusLbl.Position = UDim2.new(0, 14, 0, 0)
+statusLbl.BackgroundTransparency = 1
+statusLbl.Text = "ACTIVE"
+statusLbl.TextColor3 = C.GREEN
+statusLbl.Font = Enum.Font.GothamBold
+statusLbl.TextSize = 11
+statusLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+local versionLbl = Instance.new("TextLabel", footerBar)
+versionLbl.Size = UDim2.new(0.5, 0, 1, 0)
+versionLbl.Position = UDim2.new(0.5, 0, 0, 0)
+versionLbl.BackgroundTransparency = 1
+versionLbl.Text = "KhiHub · Premium"
+versionLbl.TextColor3 = C.MUTED
+versionLbl.Font = Enum.Font.Gotham
+versionLbl.TextSize = 10
+versionLbl.TextXAlignment = Enum.TextXAlignment.Right
+
+task.spawn(function()
+    while true do
+        TweenService:Create(statusDot, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {BackgroundTransparency = 0.6}):Play()
+        task.wait(0.8)
+        TweenService:Create(statusDot, TweenInfo.new(0.8, Enum.EasingStyle.Sine), {BackgroundTransparency = 0}):Play()
+        task.wait(0.8)
+    end
+end)
+
+-- ============= TOGGLE OPEN/CLOSE =============
+toggleBtn.MouseButton1Click:Connect(function()
+    guiOpen = not guiOpen
+    local target = guiOpen and UDim2.new(0, 30, 0, 72) or UDim2.new(0, -340, 0, 72)
+    TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = target}):Play()
+end)
+
+-- ============= CORE: CHARACTER TRACKING =============
 RunService.RenderStepped:Connect(function()
-	if character and humanoid and hrp then
-		local velocity = hrp.AssemblyLinearVelocity.Magnitude
-		isRunning = velocity > 5
-	end
+    if character and humanoid and hrp then
+        isRunning = hrp.AssemblyLinearVelocity.Magnitude > 5
+    end
 end)
 
--- INFINITE STAMINA - BLOCK STAMINA DRAIN EVENT
+-- ============= CORE: INFINITE STAMINA =============
 RunService.Heartbeat:Connect(function()
-	if not character or not humanoid then return end
-	
-	-- Restore humanoid health to max
-	humanoid.Health = humanoid.MaxHealth
-	
-	-- Find and disable any humanoid state for fatigue/climbing
-	pcall(function()
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-	end)
-	
-	-- Search and set all stamina values to max
-	local function maxStamina(obj)
-		if not obj then return end
-		pcall(function()
-			-- Check for stamina attribute
-			local staminaAttr = obj:GetAttribute("Stamina")
-			if staminaAttr and typeof(staminaAttr) == "number" then
-				obj:SetAttribute("Stamina", 100)
-			end
-			
-			-- Check for max stamina
-			local maxStaminaAttr = obj:GetAttribute("MaxStamina")
-			if maxStaminaAttr then
-				obj:SetAttribute("Stamina", maxStaminaAttr)
-			end
-			
-			-- Check all values
-			for _, child in pairs(obj:GetChildren()) do
-				local name = string.lower(child.Name)
-				if (child:IsA("NumberValue") or child:IsA("IntValue")) and 
-					(name:find("stamina") or name:find("energy") or name:find("tired")) then
-					child.Value = 100
-				end
-			end
-		end)
-		
-		-- Recurse
-		for _, child in pairs(obj:GetChildren()) do
-			maxStamina(child)
-		end
-	end
-	
-	maxStamina(character)
+    if not character or not humanoid then return end
+    pcall(function()
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+    end)
+    if getInfStamina and getInfStamina() then
+        local function maxStamina(obj)
+            if not obj then return end
+            pcall(function()
+                local st = obj:GetAttribute("Stamina")
+                if st and typeof(st) == "number" then obj:SetAttribute("Stamina", 100) end
+                local mx = obj:GetAttribute("MaxStamina")
+                if mx then obj:SetAttribute("Stamina", mx) end
+                for _, child in pairs(obj:GetChildren()) do
+                    local nm = string.lower(child.Name)
+                    if (child:IsA("NumberValue") or child:IsA("IntValue")) and
+                       (nm:find("stamina") or nm:find("energy") or nm:find("tired")) then
+                        child.Value = 100
+                    end
+                end
+            end)
+            for _, child in pairs(obj:GetChildren()) do maxStamina(child) end
+        end
+        maxStamina(character)
+    end
 end)
 
--- OVERRIDE RUNNING STATE TO PREVENT STAMINA DRAIN
+-- ============= CORE: SPEED BOOST =============
+local speedTick = 0
 RunService.Heartbeat:Connect(function()
-	if not character or not humanoid then return end
-	
-	pcall(function()
-		-- Keep running state active to bypass fatigue
-		humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-	end)
+    if not character or not humanoid or not speedEnabled then return end
+    speedTick = speedTick + 1
+    if speedTick >= 5 then
+        speedTick = 0
+        pcall(function() humanoid.WalkSpeed = currentSpeedValue end)
+    end
 end)
 
--- SPEED BOOST SYSTEM - APPLY ONLY WHEN ENABLED
-local lastSpeedApply = 0
-RunService.Heartbeat:Connect(function()
-	if not character or not humanoid or not speedEnabled then return end
-	
-	lastSpeedApply = lastSpeedApply + 1
-	if lastSpeedApply >= 5 then
-		lastSpeedApply = 0
-		pcall(function()
-			humanoid.WalkSpeed = currentSpeedValue
-		end)
-	end
+-- ============= CORE: QUICK TP (PC - F key) =============
+UIS.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.F and quickTPEnabled then
+        local char = player.Character
+        if not char then return end
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        root.CFrame = root.CFrame + root.CFrame.LookVector * quickTPStuds
+    end
 end)
 
+-- ============= CORE: AUTO SHOOT =============
 local function performRegularShot()
-	if not canShoot or not getAutoShootOn() or isShooting then return end
-
-	canShoot = false
-	isShooting = true
-
-	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-	task.wait(shootDuration / 1000)
-	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-
-	isShooting = false
-	canShoot = true
+    if not canShoot or not autoShootOn or isShooting then return end
+    canShoot = false; isShooting = true
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(shootDuration / 1000)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    isShooting = false; canShoot = true
 end
 
 local function performFadeShot()
-	if not canShoot or not getAutoShootOn() or not getFadeTimingOn() or isShooting then return end
-
-	canShoot = false
-	isShooting = true
-
-	task.wait(fadeTimingDelay / 1000)
-
-	VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-	task.wait(fadeShotDuration / 1000)
-	VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-
-	isShooting = false
-	canShoot = true
+    if not canShoot or not autoShootOn or not fadeTimingOn or isShooting then return end
+    canShoot = false; isShooting = true
+    task.wait(fadeTimingDelay / 1000)
+    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(fadeShotDuration / 1000)
+    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    isShooting = false; canShoot = true
 end
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
-	if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
-		isShiftHeld = true
-	end
-
-	if input.KeyCode == Enum.KeyCode.ButtonR2 then
-		isRTHeld = true
-	end
-
-	if gameProcessed then return end
-
-	if input.KeyCode == Enum.KeyCode.E or input.KeyCode == Enum.KeyCode.ButtonX then
-		if isShiftHeld or isRTHeld then
-			performFadeShot()
-		else
-			performRegularShot()
-		end
-	end
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then isShiftHeld = true end
+    if input.KeyCode == Enum.KeyCode.ButtonR2 then isRTHeld = true end
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.E or input.KeyCode == Enum.KeyCode.ButtonX then
+        -- Lift FIRST before anything else fires, hold in air for 3 seconds
+        if antiContestOn and character and hrp then
+            hrp.CFrame = hrp.CFrame + Vector3.new(0, 5, 0)
+            local floatConn
+            local elapsed = 0
+            local floatY = hrp.Position.Y
+            floatConn = RunService.Heartbeat:Connect(function(dt)
+                elapsed = elapsed + dt
+                if elapsed >= 3 or not hrp or not antiContestOn then
+                    if floatConn then floatConn:Disconnect() end
+                    return
+                end
+                -- Keep Y locked at float height
+                local p = hrp.Position
+                hrp.CFrame = CFrame.new(p.X, floatY, p.Z) * (hrp.CFrame - hrp.CFrame.Position)
+                hrp.AssemblyLinearVelocity = Vector3.new(
+                    hrp.AssemblyLinearVelocity.X,
+                    0,
+                    hrp.AssemblyLinearVelocity.Z
+                )
+            end)
+        end
+        if isShiftHeld or isRTHeld then performFadeShot()
+        else performRegularShot() end
+    end
 end)
 
-UIS.InputEnded:Connect(function(input, gameProcessed)
-	if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
-		isShiftHeld = false
-	end
-
-	if input.KeyCode == Enum.KeyCode.ButtonR2 then
-		isRTHeld = false
-	end
+UIS.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then isShiftHeld = false end
+    if input.KeyCode == Enum.KeyCode.ButtonR2 then isRTHeld = false end
 end)
 
-player.CharacterAdded:Connect(function(newCharacter)
-	character = newCharacter
-	humanoid = character:WaitForChild("Humanoid")
-	hrp = character:WaitForChild("HumanoidRootPart")
-	canShoot = true
-	isShooting = false
+-- ============= CORE: ANTI CONTEST =============
+local function performAntiContest()
+    if not antiContestOn or not character or not hrp then return end
+    -- Same method as Quick TP, just shoot upward
+    hrp.CFrame = hrp.CFrame + Vector3.new(0, 5, 0)
+end
+
+-- ============= CORE: DRIBBLE GLIDE =============
+local dribbleCooldown = false
+local glideActive = false
+local glideTimeLeft = 0
+local glideDirection = Vector3.new(0, 0, 0)
+
+local dribbleKeys = {
+    Enum.KeyCode.DPadLeft,
+    Enum.KeyCode.DPadRight,
+    Enum.KeyCode.DPadUp,
+    Enum.KeyCode.DPadDown,
+    Enum.KeyCode.Z,
+    Enum.KeyCode.X,
+    Enum.KeyCode.C,
+    Enum.KeyCode.V,
+}
+
+local function fireGlide()
+    if not dribbleGlideOn or not character or not hrp then return end
+    if dribbleCooldown then return end
+    dribbleCooldown = true
+
+    local lookDir = hrp.CFrame.LookVector
+    glideDirection = Vector3.new(lookDir.X, 0, lookDir.Z).Unit
+    glideActive = true
+    glideTimeLeft = 0.55 -- how long the glide lasts in seconds
+
+    task.delay(0.6, function()
+        dribbleCooldown = false
+    end)
+end
+
+-- Smooth glide applied each frame while active
+RunService.Heartbeat:Connect(function(dt)
+    if not glideActive or not character or not hrp then return end
+    glideTimeLeft = glideTimeLeft - dt
+    if glideTimeLeft <= 0 then
+        glideActive = false
+        return
+    end
+
+    -- Ease off over time: full force at start, tapering to 0
+    local progress = glideTimeLeft / 0.55
+    local forceMag = dribbleGlideForce * progress * dt * 6
+    local vel = hrp.AssemblyLinearVelocity
+    hrp.AssemblyLinearVelocity = Vector3.new(
+        vel.X + glideDirection.X * forceMag,
+        vel.Y,
+        vel.Z + glideDirection.Z * forceMag
+    )
+end)
+
+UIS.InputBegan:Connect(function(input, gpe)
+    for _, key in ipairs(dribbleKeys) do
+        if input.KeyCode == key then
+            fireGlide()
+            return
+        end
+    end
+end)
+
+-- ============= CHARACTER RESPAWN =============
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = newChar:WaitForChild("Humanoid")
+    hrp = newChar:WaitForChild("HumanoidRootPart")
+    canShoot = true; isShooting = false
+    -- Restore FOV on respawn
+    task.wait(0.5)
+    local cam = workspace.CurrentCamera
+    if cam then cam.FieldOfView = currentFOV end
 end)
